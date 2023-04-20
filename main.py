@@ -316,7 +316,7 @@ def trojan_to_clash(arr):
             'port': int(item.get('port')),
             'password': item.get('password'),
             'sni': item.get('sni'),
-            'udp': 'True'
+            'udp': True
         }
         for key in list(obj.keys()):
             if obj.get(key) is None:
