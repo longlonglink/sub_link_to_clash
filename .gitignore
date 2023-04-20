@@ -127,3 +127,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+./sub.txt
+./vmess.txt
+./trojan.txt
