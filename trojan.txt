@@ -1,2 +1,0 @@
-trojan://51eebef7-beaa-417b-9584-2794d10377c9@microsoft-us.syjd.xyz:30006?allowInsecure=1&sni=jp-zs01.78321.xyz#%E6%97%A5%E6%9C%AC-2.86MB%2Fs%28Youtube%3A%E4%B8%8D%E8%89%AF%E6%9E%97%29
-trojan://51eebef7-beaa-417b-9584-2794d10377c9@sg-csjc.syjd.xyz:443?allowInsecure=1&sni=sg-csjc.syjd.xyz#%E6%96%B0%E5%8A%A0%E5%9D%A1-262.9KB%2Fs%28Youtube%3A%E4%B8%8D%E8%89%AF%E6%9E%97%29
