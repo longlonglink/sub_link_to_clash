@@ -127,8 +127,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-./sub.txt
-./vmess.txt
-./trojan.txt
-./.idea
-./output.yaml
+trojan.txt
+vmess.txt
+sub.txt
+/.idea
+output.yaml
