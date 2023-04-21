@@ -89,15 +89,87 @@ def decode_ssr_node(nodes):
         proxy_list.append(info)
     return proxy_list
 # 解析vmess节点
-def decode_v2ray_node(nodes):
-    proxy_list = []
-    for node in nodes:
+def decode_v2ray_node(node):
+        proxy_list = []
+
         decode_proxy = node.decode('utf-8')[8:]
         proxy_str = base64.b64decode(decode_proxy).decode('utf-8')
         proxy_dict = json.loads(proxy_str)
         proxy_list.append(proxy_dict)
-    return proxy_list
+        return proxy_list
+#解析trojan节点
+def decode_trojan_node(node):
+        proxy_list = []
 
+        decode_proxy = node.decode('utf-8')[9:]
+        if not decode_proxy or decode_proxy.isspace():
+            log('节点信息为空，跳过该节点')
+
+        info = dict()
+
+        param = decode_proxy
+        if param.find('#') > -1:
+            remark = urllib.parse.unquote(param[param.find('#') + 1:])
+            info['name'] = remark
+            param = param[:param.find('#')]
+
+        if param.find('@') > -1:
+            matcher = re.match(r'(.*)@(.*):(.*?)\?allowInsecure=(.*)&sni=(.*)', param)
+            if matcher:
+                param = matcher.group(1)
+                info['sni'] = matcher.group(5)
+                info['server'] = matcher.group(2)
+                info['port'] = matcher.group(3)
+                info['allowInsecure'] = matcher.group(4)
+                info['password'] = matcher.group(1)
+                proxy_list.append(info)
+
+
+
+            matcher = re.match(r'.+(?=@)',param)
+            if matcher:
+                info['password'] = matcher.group(1)
+
+
+        else:
+            matcher = re.match(r'(.*?)@(.*):(.*)\?allowInsecure=(.*)&sni=(.*)', param)
+            if matcher:
+
+                info['password'] = matcher.group(1)
+                info['server'] = matcher.group(2)
+                info['port'] = matcher.group(3)
+                info['allowInsecure']=matcher.group(4)
+                info['sni'] = matcher.group(5)
+
+
+        return proxy_list
+#转换为clash节点
+def trojan_to_clash(arr):
+    log('trojan节点转换中...')
+    proxies = {
+        'proxy_list': [],
+        'proxy_names': []
+    }
+
+    for item in arr:
+        obj = {
+            'name': item.get('name'),
+            'type': 'trojan',
+            'server': item.get('server'),
+            'port': int(item.get('port')),
+            'password': item.get('password'),
+            'sni': item.get('sni'),
+            'udp': True
+        }
+        for key in list(obj.keys()):
+            if obj.get(key) is None:
+                del obj[key]
+        if obj.get('name'):
+            if not obj['name'].startswith('剩余流量') and not obj['name'].startswith('过期时间'):
+                proxies['proxy_list'].append(obj)
+                proxies['proxy_names'].append(obj['name'])
+    log('可用trojan节点{}个'.format(len(proxies['proxy_names'])))
+    return proxies
 # v2ray转换成Clash节点
 def v2ray_to_clash(arr):
     log('v2ray节点转换中...')
@@ -236,97 +308,27 @@ def get_proxies(urls):
             continue
         nodes_list = raw.splitlines()
         clash_node = []
-        if nodes_list[0].startswith(b'vmess://'):
-            decode_proxy = decode_v2ray_node(nodes_list)
-            clash_node = v2ray_to_clash(decode_proxy)
-        elif nodes_list[0].startswith(b'ss://'):
-            decode_proxy = decode_ss_node(nodes_list)
-            clash_node = ss_to_clash(decode_proxy)
-        elif nodes_list[0].startswith(b'ssr://'):
-            decode_proxy = decode_ssr_node(nodes_list)
-            clash_node = ssr_to_clash(decode_proxy)
-        elif nodes_list[0].startswith(b'trojan://'):
-            decode_proxy = decode_trojan_node(nodes_list)
-            clash_node = trojan_to_clash(decode_proxy)
+        for node in nodes_list:
+            if node.startswith(b'vmess://'):
+                decode_proxy = decode_v2ray_node(node)
+                clash_node = v2ray_to_clash(decode_proxy)
+            elif node.startswith(b'ss://'):
+                decode_proxy = decode_ss_node(node)
+                clash_node = ss_to_clash(decode_proxy)
+            elif node.startswith(b'ssr://'):
+                decode_proxy = decode_ssr_node(node)
+                clash_node = ssr_to_clash(decode_proxy)
+            elif node.startswith(b'trojan://'):
+                decode_proxy = decode_trojan_node(node)
+                clash_node = trojan_to_clash(decode_proxy)
 
-        else:
-            pass
-        proxy_list['proxy_list'].extend(clash_node['proxy_list'])
-        proxy_list['proxy_names'].extend(clash_node['proxy_names'])
+            else:
+                pass
+            proxy_list['proxy_list'].extend(clash_node['proxy_list'])
+            proxy_list['proxy_names'].extend(clash_node['proxy_names'])
     log('共发现:{}个节点'.format(len(proxy_list['proxy_names'])))
     return proxy_list
-def decode_trojan_node(nodes):
-    proxy_list = []
-    for node in nodes:
-        decode_proxy = node.decode('utf-8')[9:]
-        if not decode_proxy or decode_proxy.isspace():
-            log('节点信息为空，跳过该节点')
-            continue
-        info = dict()
 
-        param = decode_proxy
-        if param.find('#') > -1:
-            remark = urllib.parse.unquote(param[param.find('#') + 1:])
-            info['name'] = remark
-            param = param[:param.find('#')]
-
-        if param.find('@') > -1:
-            matcher = re.match(r'(.*)@(.*):(.*?)\?allowInsecure=(.*)&sni=(.*)', param)
-            if matcher:
-                param = matcher.group(1)
-                info['sni'] = matcher.group(5)
-                info['server'] = matcher.group(2)
-                info['port'] = matcher.group(3)
-                info['allowInsecure'] = matcher.group(4)
-                info['password'] = matcher.group(1)
-                proxy_list.append(info)
-
-            else:
-                continue
-            matcher = re.match(r'.+(?=@)',param)
-            if matcher:
-                info['password'] = matcher.group(1)
-            else:
-                continue
-        else:
-            matcher = re.match(r'(.*?)@(.*):(.*)\?allowInsecure=(.*)&sni=(.*)', param.decode('utf-8'))
-            if matcher:
-
-                info['password'] = matcher.group(1)
-                info['server'] = matcher.group(2)
-                info['port'] = matcher.group(3)
-                info['allowInsecure']=matcher.group(4)
-                info['sni'] = matcher.group(5)
-            else:
-                continue
-
-    return proxy_list
-def trojan_to_clash(arr):
-    log('trojan节点转换中...')
-    proxies = {
-        'proxy_list': [],
-        'proxy_names': []
-    }
-
-    for item in arr:
-        obj = {
-            'name': item.get('name'),
-            'type': 'trojan',
-            'server': item.get('server'),
-            'port': int(item.get('port')),
-            'password': item.get('password'),
-            'sni': item.get('sni'),
-            'udp': True
-        }
-        for key in list(obj.keys()):
-            if obj.get(key) is None:
-                del obj[key]
-        if obj.get('name'):
-            if not obj['name'].startswith('剩余流量') and not obj['name'].startswith('过期时间'):
-                proxies['proxy_list'].append(obj)
-                proxies['proxy_names'].append(obj['name'])
-    log('可用trojan节点{}个'.format(len(proxies['proxy_names'])))
-    return proxies
 # 将代理添加到配置文件
 def add_proxies_to_model(data, model):
     if model.get('proxies') is None:
