@@ -24,6 +24,6 @@ vmess://eyJ2IjoiMiIsInBzIjoi576O5Zu9LTM3OS4xS0IvcyhZb3V0dWJlOuS4jeiJr+aelykiLCJh
 
 输出文件可直接导入openclash代理集文件
 
-* ##参考
+* ## 参考
  参考代码来自
  https://github.com/waited33/convert2clash
